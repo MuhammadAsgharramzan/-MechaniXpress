@@ -1,0 +1,157 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// Enums removed for SQLite compatibility, using Strings instead
+// Role: CUSTOMER, MECHANIC, ADMIN
+// VehicleCategory: CAR, BIKE, LTV, HTV
+// BookingStatus: PENDING, CONFIRMED, IN_PROGRESS, COMPLETED, CANCELLED
+// PaymentMethod: CASH, JAZZCASH, EASYPAISA
+// PaymentStatus: PENDING, COMPLETED, FAILED
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  phone     String   @unique
+  password  String
+  name      String
+  role      String   @default("CUSTOMER") // Enum: Role
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  mechanicProfile MechanicProfile?
+  vehicles        Vehicle[]
+  bookings        Booking[]        @relation("CustomerBookings")
+  reviews         Review[]
+  notifications   Notification[]
+}
+
+model MechanicProfile {
+  id                String            @id @default(uuid())
+  userId            String            @unique
+  user              User              @relation(fields: [userId], references: [id])
+  cnic              String            @unique
+  experienceYears   Int
+  rating            Float             @default(0.0)
+  totalReviews      Int               @default(0)
+  serviceRadius     Int               @default(10) // In kilometers
+  vehicleCategories String            // SQLite doesn't support String[], storing as CSV: "CAR,BIKE"
+  isVerified        Boolean           @default(false)
+  isOnline          Boolean           @default(true)
+  latitude          Float?
+  longitude         Float?
+  address           String?
+
+  // Relations
+  assignedBookings Booking[] @relation("MechanicBookings")
+}
+
+model Vehicle {
+  id           String          @id @default(uuid())
+  customerId   String
+  customer     User            @relation(fields: [customerId], references: [id])
+  category     String          // Enum: VehicleCategory
+  make         String
+  model        String
+  year         Int
+  licensePlate String?
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  bookings Booking[]
+}
+
+model Service {
+  id               String          @id @default(uuid())
+  name             String
+  description      String
+  category         String          // Enum: VehicleCategory
+  basePrice        Float
+  convenienceFee   Float           @default(0)
+  estimatedDuration String          // e.g. "1 hour"
+
+  bookings Booking[]
+}
+
+model Booking {
+  id                 String        @id @default(uuid())
+  bookingNumber      String        @unique // MX-2024-001 format
+  customerId         String
+  customer           User          @relation("CustomerBookings", fields: [customerId], references: [id])
+  mechanicId         String?
+  mechanic           MechanicProfile? @relation("MechanicBookings", fields: [mechanicId], references: [id])
+  vehicleId          String
+  vehicle            Vehicle       @relation(fields: [vehicleId], references: [id])
+  serviceId          String
+  service            Service       @relation(fields: [serviceId], references: [id])
+  
+  status             String        @default("PENDING") // Enum: BookingStatus
+  scheduledDate      DateTime
+  scheduledTime      String        // e.g. "14:00"
+  
+  // Location
+  locationAddress    String
+  locationLat        Float
+  locationLng        Float
+  
+  problemDescription String
+  
+  // Cost
+  totalCost          Float         @default(0)
+  laborCost          Float?
+  partsCost          Float?
+  
+  // Timestamps
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+  acceptedAt         DateTime?
+  startedAt          DateTime?
+  completedAt        DateTime?
+  
+  // Work details
+  workPerformedNotes String?
+  partsUsedNotes     String?
+  
+  // Relations
+  payment            Payment?
+  review             Review?
+}
+
+model Review {
+  id        String   @id @default(uuid())
+  bookingId String   @unique
+  booking   Booking  @relation(fields: [bookingId], references: [id])
+  customerId String
+  customer  User     @relation(fields: [customerId], references: [id])
+  rating    Int      // 1-5
+  comment   String?
+  createdAt DateTime @default(now())
+}
+
+model Payment {
+  id            String        @id @default(uuid())
+  bookingId     String        @unique
+  booking       Booking       @relation(fields: [bookingId], references: [id])
+  amount        Float
+  method        String        // Enum: PaymentMethod
+  status        String        @default("PENDING") // Enum: PaymentStatus
+  transactionId String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  title     String
+  message   String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+}

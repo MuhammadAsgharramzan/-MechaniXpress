@@ -1,0 +1,10 @@
+{
+    "serviceId": "257100a6-57df-4b1a-9e92-6bcc59dbff01",
+    "vehicleId": "080910fb-9512-4768-b589-cd7f85549636",
+    "scheduledDate": "2026-02-15T09:00:00Z",
+    "scheduledTime": "09:00",
+    "locationAddress": "123 Test St, Karachi",
+    "locationLat": 24.8607,
+    "locationLng": 67.0011,
+    "problemDescription": "Engine making noise"
+}
