@@ -45,7 +45,7 @@ export default function AuthPage() {
     const { toast } = useToast();
 
     // Separate forms might be cleaner, but unified state for simplicity here
-    const { register, handleSubmit, formState: { errors } } = useForm({
+    const { register, handleSubmit, formState: { errors } } = useForm<any>({
         resolver: zodResolver(isLogin ? loginSchema : registerSchema),
     });
 
