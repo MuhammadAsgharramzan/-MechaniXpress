@@ -42,5 +42,8 @@
     "eslint-config-next": "16.1.6",
     "postcss-loader": "^8.2.0",
     "typescript": "^5"
+  },
+  "optionalDependencies": {
+    "@next/swc-win32-x64-msvc": "^16.1.6"
   }
 }

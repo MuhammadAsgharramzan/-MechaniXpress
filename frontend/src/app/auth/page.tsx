@@ -34,8 +34,18 @@ const registerSchema = z.object({
     phone: z.string().min(10, "Phone required"),
     password: z.string().min(6, "Min 6 chars"),
     role: z.enum(["CUSTOMER", "MECHANIC"]),
-    // Mechanic specific (optional in UI initially, but good to have)
     cnic: z.string().optional(),
+    vehicleCategories: z.array(z.string()).optional(),
+}).superRefine((data, ctx) => {
+    if (data.role === "MECHANIC") {
+        if (!data.cnic || data.cnic.length < 13) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: "CNIC is required (13 digits)",
+                path: ["cnic"],
+            });
+        }
+    }
 });
 
 export default function AuthPage() {
@@ -45,9 +55,14 @@ export default function AuthPage() {
     const { toast } = useToast();
 
     // Separate forms might be cleaner, but unified state for simplicity here
-    const { register, handleSubmit, formState: { errors } } = useForm<any>({
+    const { register, handleSubmit, watch, formState: { errors } } = useForm<any>({
         resolver: zodResolver(isLogin ? loginSchema : registerSchema),
+        defaultValues: {
+            role: 'CUSTOMER'
+        }
     });
+
+    const selectedRole = watch('role');
 
     const onSubmit = async (data: any) => {
         setIsLoading(true);
@@ -125,6 +140,44 @@ export default function AuthPage() {
                                             </label>
                                         </div>
                                     </div>
+
+                                    {selectedRole === 'MECHANIC' && (
+                                        <motion.div
+                                            initial={{ opacity: 0 }}
+                                            animate={{ opacity: 1 }}
+                                            className="space-y-4"
+                                        >
+                                            <div className="space-y-2">
+                                                <Label htmlFor="address">Shop Address / Base Location</Label>
+                                                <Input id="address" placeholder="e.g. Shop #5, Auto Market, Karachi" {...register('address')} />
+                                                <p className="text-[10px] text-slate-400">Customers will see this location</p>
+                                            </div>
+
+                                            <div className="space-y-2">
+                                                <Label htmlFor="cnic">CNIC (National ID)</Label>
+                                                <Input id="cnic" placeholder="1234567890123" {...register('cnic')} />
+                                                {errors.cnic && <p className="text-xs text-red-500">{(errors.cnic as any).message}</p>}
+                                            </div>
+
+                                            <div className="space-y-2">
+                                                <Label>I repair...</Label>
+                                                <div className="flex gap-4">
+                                                    <label className="flex-1 cursor-pointer">
+                                                        <input type="checkbox" value="CAR" className="peer sr-only" {...register('vehicleCategories')} />
+                                                        <div className="rounded-md border-2 border-muted p-3 hover:bg-slate-50 peer-checked:border-blue-500 peer-checked:bg-blue-50 transition-all text-center text-sm">
+                                                            🚗 Cars
+                                                        </div>
+                                                    </label>
+                                                    <label className="flex-1 cursor-pointer">
+                                                        <input type="checkbox" value="BIKE" className="peer sr-only" {...register('vehicleCategories')} />
+                                                        <div className="rounded-md border-2 border-muted p-3 hover:bg-slate-50 peer-checked:border-blue-500 peer-checked:bg-blue-50 transition-all text-center text-sm">
+                                                            🏍️ Bikes
+                                                        </div>
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        </motion.div>
+                                    )}
 
                                 </motion.div>
                             )}

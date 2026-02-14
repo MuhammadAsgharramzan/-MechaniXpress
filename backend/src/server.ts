@@ -19,6 +19,7 @@ import notificationRoutes from './routes/notificationRoutes.js';
 import paymentRoutes from './routes/paymentRoutes.js';
 import reviewRoutes from './routes/reviewRoutes.js';
 import serviceRoutes from './routes/serviceRoutes.js';
+import vehicleRoutes from './routes/vehicleRoutes.js';
 import path from 'path';
 
 // Middleware
@@ -36,6 +37,7 @@ app.use('/api/notifications', notificationRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/services', serviceRoutes);
+app.use('/api/vehicles', vehicleRoutes);
 
 // Basic Routes
 app.get('/', (req: Request, res: Response) => {

@@ -84,6 +84,36 @@ export default function NewBookingDialog({ onBookingCreated }: { onBookingCreate
         }
     };
 
+    const [isAddingVehicle, setIsAddingVehicle] = useState(false);
+    const [newVehicle, setNewVehicle] = useState({
+        category: 'CAR',
+        make: '',
+        model: '',
+        year: new Date().getFullYear(),
+        licensePlate: ''
+    });
+
+    const handleAddVehicle = async () => {
+        setIsLoading(true);
+        try {
+            const res = await api.post('/vehicles', newVehicle);
+            if (res.data.success) {
+                toast({ title: "Vehicle Added", description: `${newVehicle.make} ${newVehicle.model} added!` });
+                // Refresh vehicles and select the new one
+                const startVehicles = [...vehicles, res.data.vehicle];
+                setVehicles(startVehicles);
+                setFormData({ ...formData, vehicleId: res.data.vehicle.id });
+                setIsAddingVehicle(false);
+                // Reset form
+                setNewVehicle({ category: 'CAR', make: '', model: '', year: new Date().getFullYear(), licensePlate: '' });
+            }
+        } catch (error: any) {
+            toast({ title: "Error", description: error.response?.data?.message || "Failed to add vehicle", variant: "destructive" });
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
     return (
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
@@ -94,22 +124,89 @@ export default function NewBookingDialog({ onBookingCreated }: { onBookingCreate
             </DialogTrigger>
             <DialogContent className="sm:max-w-[500px]">
                 <DialogHeader>
-                    <DialogTitle>Request Service (Step {step}/2)</DialogTitle>
+                    <DialogTitle>
+                        {isAddingVehicle ? 'Add New Vehicle' : `Request Service (Step ${step}/2)`}
+                    </DialogTitle>
                 </DialogHeader>
 
                 <div className="space-y-4 py-4">
-                    {step === 1 && (
+                    {/* ADD VEHICLE FORM */}
+                    {isAddingVehicle && (
+                        <div className="space-y-3">
+                            <div className="space-y-2">
+                                <Label>Vehicle Type</Label>
+                                <div className="flex gap-4">
+                                    <div
+                                        className={`flex-1 border rounded-md p-3 text-center cursor-pointer ${newVehicle.category === 'CAR' ? 'border-blue-500 bg-blue-50 text-blue-700' : 'hover:bg-slate-50'}`}
+                                        onClick={() => setNewVehicle({ ...newVehicle, category: 'CAR' })}
+                                    >
+                                        Car
+                                    </div>
+                                    <div
+                                        className={`flex-1 border rounded-md p-3 text-center cursor-pointer ${newVehicle.category === 'BIKE' ? 'border-blue-500 bg-blue-50 text-blue-700' : 'hover:bg-slate-50'}`}
+                                        onClick={() => setNewVehicle({ ...newVehicle, category: 'BIKE' })}
+                                    >
+                                        Bike
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-3">
+                                <div className="space-y-2">
+                                    <Label>Make</Label>
+                                    <Input placeholder="e.g. Toyota / Honda" value={newVehicle.make} onChange={(e) => setNewVehicle({ ...newVehicle, make: e.target.value })} />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>Model</Label>
+                                    <Input placeholder="e.g. Corolla / CD70" value={newVehicle.model} onChange={(e) => setNewVehicle({ ...newVehicle, model: e.target.value })} />
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-3">
+                                <div className="space-y-2">
+                                    <Label>Year</Label>
+                                    <Input type="number" value={newVehicle.year} onChange={(e) => setNewVehicle({ ...newVehicle, year: parseInt(e.target.value) })} />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>License Plate (Optional)</Label>
+                                    <Input placeholder="ABC-123" value={newVehicle.licensePlate} onChange={(e) => setNewVehicle({ ...newVehicle, licensePlate: e.target.value })} />
+                                </div>
+                            </div>
+                            <div className="flex justify-end gap-2 pt-2">
+                                <Button variant="ghost" onClick={() => setIsAddingVehicle(false)}>Cancel</Button>
+                                <Button onClick={handleAddVehicle} disabled={isLoading || !newVehicle.make || !newVehicle.model}>
+                                    {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                    Save Vehicle
+                                </Button>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* BOOKING STEP 1 */}
+                    {!isAddingVehicle && step === 1 && (
                         <>
                             <div className="space-y-2">
                                 <Label>Select Vehicle</Label>
-                                <Select onValueChange={(v) => setFormData({ ...formData, vehicleId: v })}>
+                                <Select
+                                    value={formData.vehicleId}
+                                    onValueChange={(v) => {
+                                        if (v === 'ADD_NEW') {
+                                            setIsAddingVehicle(true);
+                                        } else {
+                                            setFormData({ ...formData, vehicleId: v });
+                                        }
+                                    }}
+                                >
                                     <SelectTrigger>
                                         <SelectValue placeholder="Select your vehicle" />
                                     </SelectTrigger>
                                     <SelectContent>
                                         {vehicles.map((v) => (
-                                            <SelectItem key={v.id} value={v.id}>{v.make} {v.model} ({v.licensePlate})</SelectItem>
+                                            <SelectItem key={v.id} value={v.id}>
+                                                {v.category === 'BIKE' ? '🏍️' : '🚗'} {v.make} {v.model}
+                                            </SelectItem>
                                         ))}
+                                        <SelectItem value="ADD_NEW" className="text-blue-600 font-medium">
+                                            + Add New Vehicle
+                                        </SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>
@@ -142,7 +239,8 @@ export default function NewBookingDialog({ onBookingCreated }: { onBookingCreate
                         </>
                     )}
 
-                    {step === 2 && (
+                    {/* BOOKING STEP 2 */}
+                    {!isAddingVehicle && step === 2 && (
                         <>
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-2">
@@ -167,22 +265,24 @@ export default function NewBookingDialog({ onBookingCreated }: { onBookingCreate
                     )}
                 </div>
 
-                <div className="flex justify-between">
-                    {step === 2 ? (
-                        <Button variant="outline" onClick={() => setStep(1)}>Back</Button>
-                    ) : (
-                        <div />
-                    )}
+                {!isAddingVehicle && (
+                    <div className="flex justify-between">
+                        {step === 2 ? (
+                            <Button variant="outline" onClick={() => setStep(1)}>Back</Button>
+                        ) : (
+                            <div />
+                        )}
 
-                    {step === 1 ? (
-                        <Button onClick={() => setStep(2)}>Next</Button>
-                    ) : (
-                        <Button onClick={handleSubmit} disabled={isLoading}>
-                            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                            Confirm Booking
-                        </Button>
-                    )}
-                </div>
+                        {step === 1 ? (
+                            <Button onClick={() => setStep(2)}>Next</Button>
+                        ) : (
+                            <Button onClick={handleSubmit} disabled={isLoading}>
+                                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                Confirm Booking
+                            </Button>
+                        )}
+                    </div>
+                )}
 
             </DialogContent>
         </Dialog>

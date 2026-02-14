@@ -5,7 +5,8 @@ import {
     getBookingDetails,
     getAvailableJobs,
     acceptJob,
-    updateJobStatus
+    updateJobStatus,
+    getMechanicBookings
 } from '../controllers/bookingController.js';
 import { authenticate, authorize } from '../middleware/auth.js';
 
@@ -17,6 +18,7 @@ router.get('/customer', authenticate, authorize(['CUSTOMER']), getCustomerBookin
 
 // Mechanic Routes
 router.get('/available', authenticate, authorize(['MECHANIC']), getAvailableJobs);
+router.get('/mechanic', authenticate, authorize(['MECHANIC']), getMechanicBookings);
 router.patch('/:bookingId/accept', authenticate, authorize(['MECHANIC']), acceptJob);
 router.patch('/:bookingId/status', authenticate, authorize(['MECHANIC']), updateJobStatus);
 

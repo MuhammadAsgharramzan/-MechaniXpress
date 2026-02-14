@@ -78,7 +78,9 @@ export const getCustomerBookings = async (req: any, res: Response) => {
                 service: true,
                 vehicle: true,
                 mechanic: {
-                    include: { user: { select: { name: true, phone: true } } }
+                    include: {
+                        user: { select: { name: true, phone: true } }
+                    }
                 }
             },
             orderBy: { createdAt: 'desc' },
@@ -99,7 +101,11 @@ export const getBookingDetails = async (req: any, res: Response) => {
             where: { id: bookingId },
             include: {
                 customer: { select: { name: true, phone: true } },
-                mechanic: { include: { user: { select: { name: true, phone: true } } } },
+                mechanic: {
+                    include: {
+                        user: { select: { name: true, phone: true } }
+                    }
+                },
                 service: true,
                 vehicle: true,
             },
@@ -140,12 +146,16 @@ export const getAvailableJobs = async (req: any, res: Response) => {
             return res.status(400).json({ success: false, message: 'Mechanic profile not found' });
         }
 
-        // In a real implementation with PostGIS/Geolocation, we would filter by distance here.
-        // For this SQLite mock, we return all PENDING bookings.
-        // OPTIONAL: Filter by mechanic's supported vehicle categories.
+        // Filter by mechanic's supported vehicle categories.
+        const categories = mechanicProfile.vehicleCategories.split(',');
 
         const jobs = await prisma.booking.findMany({
-            where: { status: 'PENDING' },
+            where: {
+                status: 'PENDING',
+                vehicle: {
+                    category: { in: categories }
+                }
+            },
             include: {
                 service: true,
                 vehicle: true,
@@ -155,6 +165,32 @@ export const getAvailableJobs = async (req: any, res: Response) => {
         });
 
         res.json({ success: true, jobs });
+    } catch (error: any) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+export const getMechanicBookings = async (req: any, res: Response) => {
+    try {
+        const mechanicUserId = req.user.id;
+        const mechanicProfile = await prisma.mechanicProfile.findUnique({ where: { userId: mechanicUserId } });
+
+        if (!mechanicProfile) return res.status(400).json({ success: false, message: 'Profile not found' });
+
+        const activeJobs = await prisma.booking.findMany({
+            where: {
+                mechanicId: mechanicProfile.id,
+                status: { in: ['CONFIRMED', 'IN_PROGRESS'] } // Active jobs only
+            },
+            include: {
+                service: true,
+                vehicle: true,
+                customer: { select: { name: true, phone: true } } // Include phone for contact
+            },
+            orderBy: { createdAt: 'desc' }
+        });
+
+        res.json({ success: true, jobs: activeJobs });
     } catch (error: any) {
         res.status(500).json({ success: false, message: error.message });
     }

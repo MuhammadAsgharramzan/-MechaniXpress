@@ -36,18 +36,25 @@ export const register = async (req: Request, res: Response) => {
             });
 
             if (validatedData.role === 'MECHANIC') {
-                // For simple registration, we might create a default profile or require more fields.
-                // Assuming cnic is passed for mechanic
                 if (!req.body.cnic) {
                     throw new Error('CNIC is required for mechanics');
                 }
+
+                // Handle vehicle categories (Expect CSV string or Array)
+                let categories = 'CAR';
+                if (req.body.vehicleCategories) {
+                    categories = Array.isArray(req.body.vehicleCategories)
+                        ? req.body.vehicleCategories.join(',')
+                        : req.body.vehicleCategories;
+                }
+
                 await tx.mechanicProfile.create({
                     data: {
                         userId: user.id,
                         cnic: req.body.cnic,
                         experienceYears: req.body.experienceYears || 0,
-                        vehicleCategories: 'CAR', // Default
-                        address: 'Unknown',
+                        vehicleCategories: categories,
+                        address: req.body.address || 'Mobile Mechanic',
                     },
                 });
             }

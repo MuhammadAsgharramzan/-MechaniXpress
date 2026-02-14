@@ -109,9 +109,13 @@ export default function CustomerDashboard() {
                                             </div>
                                             <div className="flex-1">
                                                 <p className="font-medium text-xs">{booking.mechanic.user.name}</p>
-                                                <div className="flex items-center text-yellow-500 text-xs">
+                                                <div className="flex items-center text-yellow-500 text-xs mb-1">
                                                     <Star className="h-3 w-3 fill-current mr-1" />
                                                     {booking.mechanic.rating.toFixed(1)}
+                                                </div>
+                                                <div className="flex items-start text-[10px] text-slate-500">
+                                                    <MapPin className="h-3 w-3 mr-1 mt-0.5" />
+                                                    {booking.mechanic.address}
                                                 </div>
                                             </div>
                                         </div>
