@@ -1,25 +1,28 @@
-FROM node:20-alpine
+FROM node:20-slim
 
 WORKDIR /app
 
-# Copy package files
+# Install OpenSSL for Prisma
+RUN apt-get update -y && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
+
+# Copy package files and prisma schema first (for better Docker layer caching)
 COPY package*.json ./
 COPY prisma ./prisma/
 
-# Install dependencies including dev (for build)
+# Install all dependencies (including dev for build)
 RUN npm install
 
-# Copy source
+# Copy rest of source
 COPY . .
 
-# Build TS
+# Build TypeScript
 RUN npm run build
 
-# Generate Prisma Client
+# Generate Prisma Client (must run AFTER schema is present)
 RUN npx prisma generate
 
 # Expose port
 EXPOSE 5000
 
-# Start server
+# Start the compiled server
 CMD ["npm", "start"]
