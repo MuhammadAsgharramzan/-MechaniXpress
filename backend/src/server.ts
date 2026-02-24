@@ -2,13 +2,16 @@ import express, { Express, Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from './lib/prisma.js';
 
 dotenv.config();
 
+if (!process.env.JWT_SECRET) {
+    console.warn('⚠️  WARNING: JWT_SECRET not set in environment. Using insecure default.');
+}
+
 const app: Express = express();
 const port = process.env.PORT || 5000;
-const prisma = new PrismaClient();
 
 // Routes
 import authRoutes from './routes/authRoutes.js';

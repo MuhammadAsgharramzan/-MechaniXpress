@@ -1,8 +1,6 @@
 import { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
+import prisma from '../lib/prisma.js';
 import { z } from 'zod';
-
-const prisma = new PrismaClient();
 
 // Validation Schemas
 const createBookingSchema = z.object({

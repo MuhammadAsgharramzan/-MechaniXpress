@@ -52,6 +52,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     const login = (token: string, userData: User) => {
         localStorage.setItem('token', token);
+        // Also set cookie so Next.js middleware can detect auth
+        document.cookie = `token=${token}; path=/; max-age=86400; SameSite=Strict`;
         setUser(userData);
 
         // Redirect based on role
@@ -62,6 +64,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     const logout = () => {
         localStorage.removeItem('token');
+        // Clear the cookie too
+        document.cookie = 'token=; path=/; max-age=0; SameSite=Strict';
         setUser(null);
         router.push('/auth');
     };

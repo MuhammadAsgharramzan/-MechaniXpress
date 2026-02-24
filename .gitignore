@@ -2,4 +2,19 @@ node_modules/
 dist/
 .next/
 .env
+.env.local
 *.log
+
+# SQLite database file (local only)
+*.db
+*.db-journal
+*.db-shm
+*.db-wal
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Build output
+out/
+build/
