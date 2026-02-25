@@ -1,23 +1,43 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { LogOut, Home, Wrench, User, Menu } from 'lucide-react';
+import { LogOut, Home, Wrench, User, Menu, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { useRouter } from 'next/navigation';
-
 import { NotificationsDropdown } from './_components/NotificationsDropdown';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-    const { user, logout } = useAuth();
+    const { user, logout, isLoading } = useAuth();
     const router = useRouter();
+    // Track client-side mount to prevent hydration mismatch
+    const [mounted, setMounted] = useState(false);
 
-    if (!user) {
-        // Basic protection, though middleware would be better
-        return <div className="p-8 text-center">Loading or Unauthorized...</div>;
+    useEffect(() => {
+        setMounted(true);
+    }, []);
+
+    // After mount: if auth check is done and no user, redirect to login
+    useEffect(() => {
+        if (mounted && !isLoading && !user) {
+            router.replace('/auth');
+        }
+    }, [mounted, isLoading, user, router]);
+
+    // Always render the same shell on server and during hydration
+    // Show a centered spinner until both mounted + auth resolved
+    if (!mounted || isLoading) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-slate-50">
+                <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+            </div>
+        );
     }
+
+    // After mount: if still no user (redirect is in flight), show nothing
+    if (!user) return null;
 
     const NavContent = () => (
         <div className="flex flex-col h-full">
