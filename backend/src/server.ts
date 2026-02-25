@@ -26,10 +26,25 @@ import vehicleRoutes from './routes/vehicleRoutes.js';
 import path from 'path';
 
 // Middleware
-app.use(cors());
+const allowedOrigins = [
+    'http://localhost:3000',
+    'https://mechani-xpress.vercel.app',
+    process.env.FRONTEND_URL,           // Override via env if needed
+].filter(Boolean) as string[];
+
+app.use(cors({
+    origin: (origin, callback) => {
+        // Allow requests with no origin (e.g. mobile apps, curl, Postman)
+        if (!origin) return callback(null, true);
+        if (allowedOrigins.includes(origin)) return callback(null, true);
+        callback(new Error(`CORS blocked: ${origin}`));
+    },
+    credentials: true,
+}));
 app.use(express.json());
 app.use(morgan('dev'));
 app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
+
 
 // Route Registration
 app.use('/api/auth', authRoutes);
