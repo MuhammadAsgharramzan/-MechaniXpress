@@ -24,5 +24,5 @@ RUN npx prisma generate
 # Expose port
 EXPOSE 5000
 
-# Start the compiled server
-CMD ["npm", "start"]
+# Run migrations then start the compiled server
+CMD ["sh", "-c", "npx prisma migrate deploy && npm start"]
