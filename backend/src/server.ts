@@ -28,6 +28,7 @@ import path from 'path';
 // Middleware
 const allowedOrigins = [
     'http://localhost:3000',
+    'http://127.0.0.1:3000',
     'https://mechani-xpress.vercel.app',
     process.env.FRONTEND_URL,           // Override via env if needed
 ].filter(Boolean) as string[];
@@ -75,8 +76,8 @@ app.use((err: any, req: Request, res: Response, next: NextFunction) => {
     });
 });
 
-app.listen(port, () => {
-    console.log(`✓ Server running on http://localhost:${port}`);
+app.listen(port as number, '0.0.0.0', () => {
+    console.log(`✓ Server running on http://0.0.0.0:${port}`);
     console.log(`✓ Database connected (SQLite)`);
 });
 

@@ -6,8 +6,8 @@ export const registerSchema = z.object({
     name: z.string().min(2),
     phone: z.string().min(10), // Basic phone validation
     role: z.enum(['CUSTOMER', 'MECHANIC']),
+    cnic: z.string().min(13, "CNIC must be 13 characters").max(13, "CNIC must be 13 characters"), // Required universally now
     // Mechanic specific fields (optional in schema, handled in logic)
-    cnic: z.string().optional(),
     experienceYears: z.number().optional(),
 });
 

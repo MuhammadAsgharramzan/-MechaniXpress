@@ -4,14 +4,17 @@ import { z } from 'zod';
 
 // Validation Schemas
 const createBookingSchema = z.object({
-    serviceId: z.string(),
+    serviceId: z.string().optional(),
     vehicleId: z.string(),
     scheduledDate: z.string().datetime(), // ISO 8601 string
     scheduledTime: z.string(),
     locationAddress: z.string(),
     locationLat: z.number(),
     locationLng: z.number(),
-    problemDescription: z.string(),
+    issueCategory: z.string().optional(),
+    specificProblem: z.string().optional(),
+    severityLevel: z.string().optional(),
+    problemDescription: z.string().optional().default(''),
 });
 
 // --- Customer Endpoints ---
@@ -31,12 +34,16 @@ export const createBooking = async (req: any, res: Response) => {
         }
 
         // 2. Get Service details for pricing
-        const service = await prisma.service.findUnique({
-            where: { id: data.serviceId },
-        });
+        let totalCost = 1000; // Base diagnostic/call-out fee
+        if (data.serviceId) {
+            const service = await prisma.service.findUnique({
+                where: { id: data.serviceId },
+            });
 
-        if (!service) {
-            return res.status(404).json({ success: false, message: 'Service not found' });
+            if (!service) {
+                return res.status(404).json({ success: false, message: 'Service not found' });
+            }
+            totalCost = service.basePrice + service.convenienceFee;
         }
 
         // 3. Generate Booking Number (Simple timestamp-based for now)
@@ -49,15 +56,18 @@ export const createBooking = async (req: any, res: Response) => {
                 bookingNumber,
                 customerId: userId,
                 vehicleId: data.vehicleId,
-                serviceId: data.serviceId,
+                serviceId: data.serviceId || undefined,
                 scheduledDate: data.scheduledDate,
                 scheduledTime: data.scheduledTime,
                 locationAddress: data.locationAddress,
                 locationLat: data.locationLat,
                 locationLng: data.locationLng,
+                issueCategory: data.issueCategory,
+                specificProblem: data.specificProblem,
+                severityLevel: data.severityLevel,
                 problemDescription: data.problemDescription,
                 status: 'PENDING',
-                totalCost: service.basePrice + service.convenienceFee, // Initial estimate
+                totalCost, // Initial estimate or call-out fee
             },
         });
 

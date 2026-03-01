@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, Plus } from "lucide-react";
 import { useAuth } from '@/context/AuthContext';
 import api from '@/lib/api';
+import { VEHICLE_ISSUES, MECHANIC_ASSIGNMENT_OPTIONS, Category, Issue } from '@/lib/vehicleIssues';
 
 export default function NewBookingDialog({ onBookingCreated }: { onBookingCreated: () => void }) {
     const [open, setOpen] = useState(false);
@@ -19,16 +20,21 @@ export default function NewBookingDialog({ onBookingCreated }: { onBookingCreate
     const { toast } = useToast();
 
     const [services, setServices] = useState<any[]>([]);
-    // We use user?.vehicles from context if available, else we might need to fetch profile again or rely on what we have
     const [vehicles, setVehicles] = useState<any[]>([]);
+
+    const [bookingType, setBookingType] = useState<'SERVICE' | 'ISSUE'>('SERVICE');
 
     const [formData, setFormData] = useState({
         vehicleId: '',
         serviceId: '',
+        issueCategory: '',
+        specificProblem: '',
+        severityLevel: '',
+        mechanicAssignment: 'NEARBY',
         scheduledDate: '',
         scheduledTime: '',
         locationAddress: '',
-        locationLat: 24.8607, // Default Karachi
+        locationLat: 24.8607,
         locationLng: 67.0011,
         problemDescription: '',
     });
@@ -39,7 +45,6 @@ export default function NewBookingDialog({ onBookingCreated }: { onBookingCreate
             if (user && (user as any).vehicles) {
                 setVehicles((user as any).vehicles);
             } else {
-                // Fallback fetch if vehicles not in context user object (it should be)
                 api.get('/auth/me').then(res => {
                     if (res.data.success) setVehicles(res.data.user.vehicles);
                 });
@@ -57,8 +62,10 @@ export default function NewBookingDialog({ onBookingCreated }: { onBookingCreate
     };
 
     const handleSubmit = async () => {
-        if (!formData.vehicleId || !formData.serviceId || !formData.scheduledDate || !formData.scheduledTime || !formData.locationAddress) {
-            toast({ title: "Error", description: "Please fill all fields", variant: "destructive" });
+        const hasServiceOrIssue = bookingType === 'SERVICE' ? formData.serviceId : formData.issueCategory;
+
+        if (!formData.vehicleId || !hasServiceOrIssue || !formData.scheduledDate || !formData.scheduledTime || !formData.locationAddress) {
+            toast({ title: "Error", description: "Please fill all required fields", variant: "destructive" });
             return;
         }
 
@@ -210,28 +217,99 @@ export default function NewBookingDialog({ onBookingCreated }: { onBookingCreate
                                     </SelectContent>
                                 </Select>
                             </div>
-                            <div className="space-y-2">
-                                <Label>Select Service</Label>
-                                <Select onValueChange={(v) => setFormData({ ...formData, serviceId: v })}>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Choose a service" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {services.map((s) => (
-                                            <SelectItem key={s.id} value={s.id}>
-                                                <div className="flex justify-between w-full gap-4">
-                                                    <span>{s.name}</span>
-                                                    <span className="text-muted-foreground font-mono">PKR {s.basePrice}</span>
-                                                </div>
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
+                            <div className="space-y-2 mb-4">
+                                <Label>What do you need?</Label>
+                                <div className="flex gap-4">
+                                    <div
+                                        className={`flex-1 border rounded-md p-3 text-center cursor-pointer ${bookingType === 'SERVICE' ? 'border-blue-500 bg-blue-50 text-blue-700' : 'hover:bg-slate-50'}`}
+                                        onClick={() => { setBookingType('SERVICE'); setFormData({ ...formData, issueCategory: '', specificProblem: '', severityLevel: '' }); }}
+                                    >
+                                        Standard Service
+                                    </div>
+                                    <div
+                                        className={`flex-1 border rounded-md p-3 text-center cursor-pointer ${bookingType === 'ISSUE' ? 'border-blue-500 bg-blue-50 text-blue-700' : 'hover:bg-slate-50'}`}
+                                        onClick={() => { setBookingType('ISSUE'); setFormData({ ...formData, serviceId: '' }); }}
+                                    >
+                                        Report an Issue
+                                    </div>
+                                </div>
                             </div>
+
+                            {bookingType === 'SERVICE' && (
+                                <div className="space-y-2">
+                                    <Label>Select Service</Label>
+                                    <Select onValueChange={(v) => setFormData({ ...formData, serviceId: v })}>
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Choose a service" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {services.map((s) => (
+                                                <SelectItem key={s.id} value={s.id}>
+                                                    <div className="flex justify-between w-full gap-4">
+                                                        <span>{s.name}</span>
+                                                        <span className="text-muted-foreground font-mono">PKR {s.basePrice}</span>
+                                                    </div>
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            )}
+
+                            {bookingType === 'ISSUE' && formData.vehicleId && (
+                                <>
+                                    <div className="space-y-2">
+                                        <Label>Issue Category</Label>
+                                        <Select
+                                            value={formData.issueCategory}
+                                            onValueChange={(v) => setFormData({ ...formData, issueCategory: v, specificProblem: '', severityLevel: '' })}
+                                        >
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="What kind of issue?" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {(VEHICLE_ISSUES[vehicles.find(v => v.id === formData.vehicleId)?.category] || []).map((cat: Category) => (
+                                                    <SelectItem key={cat.name} value={cat.name}>
+                                                        {cat.name}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+
+                                    {formData.issueCategory && (
+                                        <div className="space-y-2">
+                                            <Label>Specific Problem</Label>
+                                            <Select
+                                                value={formData.specificProblem}
+                                                onValueChange={(v) => {
+                                                    const issues = VEHICLE_ISSUES[vehicles.find(vec => vec.id === formData.vehicleId)?.category]?.find(c => c.name === formData.issueCategory)?.issues || [];
+                                                    const issue = issues.find(i => i.problem === v);
+                                                    setFormData({ ...formData, specificProblem: v, severityLevel: issue?.severity || '' });
+                                                }}
+                                            >
+                                                <SelectTrigger>
+                                                    <SelectValue placeholder="Describe the specific problem" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {(VEHICLE_ISSUES[vehicles.find(v => v.id === formData.vehicleId)?.category]?.find(c => c.name === formData.issueCategory)?.issues || []).map((issue: Issue) => (
+                                                        <SelectItem key={issue.problem} value={issue.problem}>
+                                                            {issue.problem}
+                                                            {issue.severity === 'Emergency' && <span className="ml-2 text-red-500 text-xs">(Emergency)</span>}
+                                                            {issue.severity === 'Medium' && <span className="ml-2 text-yellow-500 text-xs">(Medium)</span>}
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                    )}
+                                </>
+                            )}
+
                             <div className="space-y-2">
-                                <Label>Description</Label>
+                                <Label>Additional Description</Label>
                                 <Input
-                                    placeholder="Describe the issue (optional)"
+                                    placeholder="Any extra details (optional)"
                                     value={formData.problemDescription}
                                     onChange={(e) => setFormData({ ...formData, problemDescription: e.target.value })}
                                 />
@@ -242,6 +320,22 @@ export default function NewBookingDialog({ onBookingCreated }: { onBookingCreate
                     {/* BOOKING STEP 2 */}
                     {!isAddingVehicle && step === 2 && (
                         <>
+                            <div className="space-y-2 mb-2">
+                                <Label>Mechanic Assignment</Label>
+                                <div className="grid grid-cols-2 gap-3">
+                                    {MECHANIC_ASSIGNMENT_OPTIONS.map(opt => (
+                                        <div
+                                            key={opt.id}
+                                            className={`border rounded-md p-3 cursor-pointer ${formData.mechanicAssignment === opt.id ? 'border-blue-500 bg-blue-50 text-blue-700' : 'hover:bg-slate-50'}`}
+                                            onClick={() => setFormData({ ...formData, mechanicAssignment: opt.id })}
+                                        >
+                                            <div className="font-medium text-sm">{opt.label}</div>
+                                            <div className="text-xs text-muted-foreground mt-1">{opt.description}</div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-2">
                                     <Label>Date</Label>

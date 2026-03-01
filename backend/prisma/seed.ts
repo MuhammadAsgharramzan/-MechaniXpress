@@ -124,9 +124,9 @@ async function main() {
       password,
       name: 'Ustad Bashir',
       role: 'MECHANIC',
+      cnic: '42101-1234567-1',
       mechanicProfile: {
         create: {
-          cnic: '42101-1234567-1',
           experienceYears: 15,
           rating: 4.8,
           totalReviews: 24,
@@ -149,9 +149,9 @@ async function main() {
       password,
       name: 'Aslam Mechanic',
       role: 'MECHANIC',
+      cnic: '42101-7654321-9',
       mechanicProfile: {
         create: {
-          cnic: '42101-7654321-9',
           experienceYears: 8,
           rating: 4.5,
           totalReviews: 12,

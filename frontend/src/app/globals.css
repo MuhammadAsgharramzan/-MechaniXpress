@@ -4,44 +4,76 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
+    /* Backgrounds: Soft off-white to contrast cards */
+    --background: 210 40% 98%;
+    /* slate-50 */
     --foreground: 222.2 84% 4.9%;
+    /* slate-900 */
+
+    /* Cards: Pure white with dark text */
     --card: 0 0% 100%;
     --card-foreground: 222.2 84% 4.9%;
+
+    /* Popovers/Dropdowns */
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
-    --primary: 222.2 47.4% 11.2%;
+
+    /* Primary: Indigo-600 (#4f46e5) */
+    --primary: 243 75% 59%;
     --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
+
+    /* Secondary/Accent: Amber-500 (#f59e0b) */
+    --secondary: 38 92% 50%;
+    --secondary-foreground: 210 40% 98%;
+
+    /* Muted Contexts: slate-100 */
+    --muted: 214.3 31.8% 91.4%;
     --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
+
+    /* Subtle interactions */
+    --accent: 214.3 31.8% 91.4%;
     --accent-foreground: 222.2 47.4% 11.2%;
+
+    /* Errors */
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
+
+    /* Borders & Inputs */
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
-    --radius: 0.5rem;
-    --chart-1: 12 76% 61%;
-    --chart-2: 173 58% 39%;
+    --ring: 243 75% 59%;
+    /* Indigo focus ring */
+
+    /* Modern border radii (xl) */
+    --radius: 0.75rem;
+
+    /* Admin Charts: Matching Brand */
+    --chart-1: 243 75% 59%;
+    /* Indigo */
+    --chart-2: 38 92% 50%;
+    /* Amber */
     --chart-3: 197 37% 24%;
     --chart-4: 43 74% 66%;
     --chart-5: 27 87% 67%;
   }
 
   .dark {
+    /* Dark Mode Theme */
     --background: 222.2 84% 4.9%;
     --foreground: 210 40% 98%;
     --card: 222.2 84% 4.9%;
     --card-foreground: 210 40% 98%;
     --popover: 222.2 84% 4.9%;
     --popover-foreground: 210 40% 98%;
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary: 217.2 32.6% 17.5%;
+
+    /* Primary: Indigo-500 for better visibility */
+    --primary: 239 84% 67%;
+    --primary-foreground: 210 40% 98%;
+
+    /* Secondary/Accent: Amber-500 */
+    --secondary: 38 92% 50%;
     --secondary-foreground: 210 40% 98%;
+
     --muted: 217.2 32.6% 17.5%;
     --muted-foreground: 215 20.2% 65.1%;
     --accent: 217.2 32.6% 17.5%;
@@ -50,9 +82,10 @@
     --destructive-foreground: 210 40% 98%;
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
-    --chart-1: 220 70% 50%;
-    --chart-2: 160 60% 45%;
+    --ring: 239 84% 67%;
+
+    --chart-1: 239 84% 67%;
+    --chart-2: 38 92% 50%;
     --chart-3: 30 80% 55%;
     --chart-4: 280 65% 60%;
     --chart-5: 340 75% 55%;
@@ -69,6 +102,54 @@
   }
 }
 
+@layer components {
+
+  /* Custom Component Styles per User Request */
+  .card {
+    background: white;
+    border-radius: 16px;
+    padding: 16px;
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+    margin-bottom: 12px;
+    border: 1px solid #f0f0f0;
+  }
+
+  .button-primary {
+    background: #2563EB;
+    color: white;
+    padding: 12px 24px;
+    border-radius: 30px;
+    font-weight: 600;
+    border: none;
+  }
+
+  .button-outline {
+    background: white;
+    color: #2563EB;
+    padding: 12px 24px;
+    border-radius: 30px;
+    border: 2px solid #2563EB;
+  }
+
+  .badge-completed {
+    background: #D1FAE5;
+    color: #065F46;
+    padding: 4px 12px;
+    border-radius: 30px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  .badge-pending {
+    background: #FEF3C7;
+    color: #92400E;
+    padding: 4px 12px;
+    border-radius: 30px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+}
+
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #0a0a0a;
@@ -79,5 +160,17 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  /* The Inter font is injected by NextJS Font on body via layout.tsx natively 
+     but we'll put sans-serif as a robust fallback */
+  font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  /* Improve font smoothing for high-end feel */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Beautiful selection state */
+::selection {
+  background-color: hsl(243 75% 59% / 0.2);
+  /* Indigo highlight */
+  color: hsl(var(--foreground));
 }

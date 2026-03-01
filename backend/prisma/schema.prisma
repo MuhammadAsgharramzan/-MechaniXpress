@@ -17,14 +17,17 @@ datasource db {
 // PaymentStatus: PENDING, COMPLETED, FAILED
 
 model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
-  phone     String   @unique
-  password  String
-  name      String
-  role      String   @default("CUSTOMER") // Enum: Role
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id               String    @id @default(uuid())
+  email            String    @unique
+  phone            String    @unique
+  password         String
+  name             String
+  cnic             String?   @unique
+  role             String    @default("CUSTOMER") // Enum: Role
+  resetToken       String?   @unique
+  resetTokenExpiry DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 
   // Relations
   mechanicProfile MechanicProfile?
@@ -38,7 +41,6 @@ model MechanicProfile {
   id                String            @id @default(uuid())
   userId            String            @unique
   user              User              @relation(fields: [userId], references: [id])
-  cnic              String            @unique
   experienceYears   Int
   rating            Float             @default(0.0)
   totalReviews      Int               @default(0)
@@ -90,8 +92,8 @@ model Booking {
   mechanic           MechanicProfile? @relation("MechanicBookings", fields: [mechanicId], references: [id])
   vehicleId          String
   vehicle            Vehicle       @relation(fields: [vehicleId], references: [id])
-  serviceId          String
-  service            Service       @relation(fields: [serviceId], references: [id])
+  serviceId          String?
+  service            Service?      @relation(fields: [serviceId], references: [id])
   
   status             String        @default("PENDING") // Enum: BookingStatus
   scheduledDate      DateTime
@@ -101,6 +103,11 @@ model Booking {
   locationAddress    String
   locationLat        Float
   locationLng        Float
+  
+  // Structured Reporting
+  issueCategory      String?
+  specificProblem    String?
+  severityLevel      String?
   
   problemDescription String
   

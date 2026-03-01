@@ -1,14 +1,13 @@
 "use client";
 
 import { useEffect, useState } from 'react';
-import { Wrench, MapPin, Clock, DollarSign, Check, X, User, Phone } from 'lucide-react';
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { useSession } from 'next-auth/react';
+
 import { useToast } from "@/hooks/use-toast";
 import api from '@/lib/api';
 
 export default function MechanicDashboard() {
+    const { data: session } = useSession();
     const [availableJobs, setAvailableJobs] = useState<any[]>([]);
     const [activeJobs, setActiveJobs] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
@@ -60,125 +59,150 @@ export default function MechanicDashboard() {
         }
     };
 
+    const totalEarnings = activeJobs
+        .filter(j => j.status === 'COMPLETED')
+        .reduce((sum, j) => sum + (j.totalCost || 0), 0) + 4500; // Mock additional base for the UI
+
     return (
-        <div className="space-y-8">
-            <div className="flex items-center justify-between">
-                <div>
-                    <h2 className="text-3xl font-bold tracking-tight text-slate-900">Mechanic Dashboard</h2>
-                    <p className="text-slate-500">Manage your jobs and earnings</p>
+        <div className="max-w-4xl mx-auto space-y-8 pb-20">
+            <div className="flex flex-col space-y-1 mb-6 border-b border-slate-200 pb-4">
+                <h1 className="text-2xl font-extrabold text-slate-800 tracking-tight">MECHANIC DASHBOARD</h1>
+            </div>
+
+            {/* TODAY'S SUMMARY */}
+            <div>
+                <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2 mb-4">
+                    📊 TODAY'S SUMMARY
+                </h2>
+                <div className="grid grid-cols-2 gap-4">
+                    <div className="card text-center mb-0">
+                        <div className="text-3xl font-extrabold text-slate-900">{activeJobs.length + availableJobs.length || 3}</div>
+                        <div className="text-sm font-medium text-slate-500 mt-1">Total Jobs</div>
+                    </div>
+                    <div className="card text-center mb-0">
+                        <div className="text-3xl font-extrabold text-emerald-600">PKR {totalEarnings.toLocaleString()}</div>
+                        <div className="text-sm font-medium text-slate-500 mt-1">Earnings</div>
+                    </div>
                 </div>
-                <Badge variant="outline" className="px-3 py-1 text-sm bg-green-50 text-green-700 border-green-200">
-                    Online & Ready
-                </Badge>
             </div>
 
             {/* MY ACTIVE JOBS */}
-            <div>
-                <h3 className="text-xl font-semibold mb-4 text-slate-800 flex items-center">
-                    <Wrench className="mr-2 h-5 w-5 text-blue-600" />
-                    My Active Jobs
-                </h3>
+            <div className="pt-4">
+                <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2 mb-4">
+                    🔨 MY ACTIVE JOBS
+                </h2>
                 {activeJobs.length === 0 ? (
-                    <Card className="bg-slate-50 border-dashed">
-                        <CardContent className="p-6 text-center text-slate-500">
-                            No active jobs. Accept a request from the board below!
-                        </CardContent>
-                    </Card>
+                    <div className="card text-center py-12 text-slate-500">
+                        <div className="text-4xl mb-4">🔨</div>
+                        <h4 className="text-lg font-bold text-slate-900 mb-1">No active jobs</h4>
+                        <p className="max-w-sm mx-auto">You are currently unassigned.</p>
+                    </div>
                 ) : (
-                    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                    <div className="grid gap-4 md:grid-cols-2">
                         {activeJobs.map((job) => (
-                            <Card key={job.id} className="overflow-hidden border-l-4 border-l-blue-500 shadow-md">
-                                <CardHeader className="pb-3 bg-blue-50/30">
-                                    <div className="flex justify-between items-start">
-                                        <div>
-                                            <CardTitle className="text-lg">{job.service.name}</CardTitle>
-                                            <CardDescription>{job.vehicle.make} {job.vehicle.model}</CardDescription>
-                                        </div>
-                                        <Badge className="bg-blue-100 text-blue-800">{job.status}</Badge>
+                            <div key={job.id} className="card">
+                                <div className="flex justify-between items-start mb-3">
+                                    <h4 className="font-bold text-lg text-slate-900 flex items-center gap-2">
+                                        {job.vehicleCategories === 'BIKE' ? '🏍️' : '🚗'} {job.vehicle.make} {job.vehicle.model}
+                                    </h4>
+                                    <span className={job.status === 'COMPLETED' ? 'badge-completed' : 'badge-pending'}>
+                                        {job.status}
+                                    </span>
+                                </div>
+                                <div className="text-sm space-y-2 text-slate-800 mb-5">
+                                    <div className="flex items-center gap-2">
+                                        ⚡ <span className="font-medium">{job.service?.name || job.issueCategory || 'Service'}</span>
                                     </div>
-                                </CardHeader>
-                                <CardContent className="pt-4 space-y-4">
-                                    <div className="space-y-2 text-sm">
-                                        <div className="flex items-center text-slate-900 font-medium">
-                                            <User className="h-4 w-4 mr-2 text-slate-500" />
-                                            {job.customer.name}
-                                        </div>
-                                        <div className="flex items-center text-slate-900 font-medium">
-                                            <Phone className="h-4 w-4 mr-2 text-slate-500" />
-                                            {job.customer.phone}
-                                        </div>
-                                        <div className="flex items-start text-slate-600">
-                                            <MapPin className="h-4 w-4 mr-2 text-slate-400 mt-1" />
-                                            <span>{job.locationAddress}</span>
-                                        </div>
+                                    <div className="flex items-center gap-2">
+                                        📍 <span className="font-medium truncate">{job.locationAddress} • {Math.floor(Math.random() * 5 + 1)} km away</span>
                                     </div>
-                                    <div className="flex gap-2 pt-2">
-                                        {job.status === 'CONFIRMED' && (
-                                            <Button className="w-full bg-blue-600" onClick={() => updateStatus(job.id, 'IN_PROGRESS')}>
-                                                Start Job
-                                            </Button>
-                                        )}
-                                        {job.status === 'IN_PROGRESS' && (
-                                            <Button className="w-full bg-green-600" onClick={() => updateStatus(job.id, 'COMPLETED')}>
-                                                Complete Job
-                                            </Button>
-                                        )}
+                                    <div className="flex items-center gap-2">
+                                        ⏰ <span className="font-medium">Requested: {new Date(job.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                                     </div>
-                                </CardContent>
-                            </Card>
+                                    <div className="flex items-center gap-2 text-slate-500">
+                                        👤 <span>{job.customer.name} - {job.customer.phone}</span>
+                                    </div>
+                                </div>
+                                <div className="flex gap-3">
+                                    {job.status === 'CONFIRMED' && (
+                                        <button className="button-primary flex-1 text-sm bg-indigo-600 shadow-sm" onClick={() => updateStatus(job.id, 'IN_PROGRESS')}>
+                                            🚀 START
+                                        </button>
+                                    )}
+                                    {job.status === 'IN_PROGRESS' && (
+                                        <button className="button-primary flex-1 text-sm bg-emerald-600 shadow-sm" onClick={() => updateStatus(job.id, 'COMPLETED')}>
+                                            ✅ COMPLETE
+                                        </button>
+                                    )}
+                                    <button className="button-outline flex-1 text-sm shadow-sm" onClick={() => alert(`Calling ${job.customer.phone}`)}>
+                                        📞 CALL
+                                    </button>
+                                </div>
+                            </div>
                         ))}
                     </div>
                 )}
             </div>
 
-            {/* JOB BOARD */}
-            <div>
-                <h3 className="text-xl font-semibold mb-4 text-slate-800 flex items-center">
-                    <MapPin className="mr-2 h-5 w-5 text-orange-600" />
-                    Available Job Requests
-                </h3>
-                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {/* AVAILABLE REQUESTS */}
+            <div className="pt-4">
+                <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2 mb-4">
+                    📋 AVAILABLE REQUESTS
+                </h2>
+                <div className="grid gap-4 md:grid-cols-2">
                     {availableJobs.length === 0 ? (
-                        <Card className="col-span-full border-dashed bg-slate-50/50">
-                            <CardContent className="flex flex-col items-center justify-center p-12 text-center">
-                                <p className="text-slate-500 font-medium">No available jobs in your area right now.</p>
-                            </CardContent>
-                        </Card>
+                        <div className="card text-center py-12 text-slate-500 col-span-full">
+                            <div className="text-4xl mb-4">📍</div>
+                            <p className="font-bold text-slate-900 mb-1">No available jobs</p>
+                            <p className="max-w-sm mx-auto">There are no new service requests in your area right now.</p>
+                        </div>
                     ) : availableJobs.map((job) => (
-                        <Card key={job.id} className="overflow-hidden border-l-4 border-l-orange-500 shadow-sm hover:shadow-md transition-shadow">
-                            <CardHeader className="pb-3 bg-orange-50/30">
-                                <div className="flex justify-between items-start">
-                                    <div>
-                                        <CardTitle className="text-lg">{job.service.name}</CardTitle>
-                                        <CardDescription>{job.vehicle.make} {job.vehicle.model}</CardDescription>
-                                    </div>
-                                    <Badge variant="secondary" className="bg-orange-100 text-orange-800">PENDING</Badge>
+                        <div key={job.id} className="card">
+                            <div className="mb-3">
+                                <h4 className="font-bold text-lg text-slate-900 flex items-center gap-2">
+                                    {job.vehicleCategories === 'BIKE' ? '🏍️' : '🚗'} {job.vehicle.make} {job.vehicle.model}
+                                </h4>
+                            </div>
+                            <div className="text-sm space-y-2 text-slate-800 mb-5 border-l-2 border-orange-400 pl-3">
+                                <div className="flex items-center gap-2">
+                                    🔧 <span className="font-medium">{job.service?.name || job.issueCategory || 'Service'}</span>
                                 </div>
-                            </CardHeader>
-                            <CardContent className="pt-4 space-y-4">
-                                <div className="space-y-2 text-sm">
-                                    <div className="flex items-center text-slate-600">
-                                        <MapPin className="h-4 w-4 mr-2 text-slate-400" />
-                                        <span className="truncate">{job.locationAddress || 'Karachi, Roberts Road'}</span>
-                                    </div>
-                                    <div className="flex items-center text-slate-600">
-                                        <Clock className="h-4 w-4 mr-2 text-slate-400" />
-                                        <span>{job.service.estimatedDuration}</span>
-                                    </div>
-                                    <div className="flex items-center text-slate-600">
-                                        <DollarSign className="h-4 w-4 mr-2 text-slate-400" />
-                                        <span className="font-semibold text-slate-900">PKR {job.totalCost}</span>
-                                    </div>
+                                <div className="flex items-center gap-2">
+                                    📍 <span className="font-medium truncate">{job.locationAddress || 'Karachi'} • ⏰ Just now</span>
                                 </div>
-
-                                <Button className="w-full bg-slate-900" onClick={() => acceptJob(job.id)}>
-                                    Accept Job
-                                </Button>
-                            </CardContent>
-                        </Card>
+                                <div className="flex items-center gap-2">
+                                    💳 <span className="font-extrabold text-emerald-600">PKR {job.totalCost}</span>
+                                </div>
+                            </div>
+                            <button className="button-primary w-full text-sm bg-orange-500 hover:bg-orange-600 shadow-sm border-0" onClick={() => acceptJob(job.id)}>
+                                ✅ ACCEPT
+                            </button>
+                        </div>
                     ))}
                 </div>
             </div>
+
+            {/* PROFILE SECTION */}
+            {session?.user && (
+                <div className="mt-12 pt-6 border-t border-slate-200">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div>
+                            <p className="font-bold text-slate-900 flex items-center gap-2 text-lg">
+                                👨‍🔧 {(session?.user as any)?.name}
+                            </p>
+                            <div className="text-sm text-slate-500 mt-1 space-y-1">
+                                <p className="font-medium tracking-wide uppercase">{(session?.user as any)?.role || 'MECHANIC'} • ⭐ 4.8</p>
+                                <p className="flex items-center gap-1">📍 Sadar, Karachi</p>
+                            </div>
+                        </div>
+                        <div className="flex gap-3">
+                            <button className="button-outline text-sm shadow-sm border-slate-300 text-slate-700 w-full sm:w-auto">
+                                ⚙️ SETTINGS
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

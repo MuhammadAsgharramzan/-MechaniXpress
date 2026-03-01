@@ -5,7 +5,7 @@ import { useAuth } from '@/context/AuthContext';
 import { LogOut, Home, Wrench, User, Menu, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet';
 import { useRouter } from 'next/navigation';
 import { NotificationsDropdown } from './_components/NotificationsDropdown';
 
@@ -41,52 +41,56 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
     const NavContent = () => (
         <div className="flex flex-col h-full">
-            <div className="p-6 border-b">
-                <h1 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                    MechaniXpress
-                </h1>
+            <div className="p-6 border-b border-slate-100">
+                <Link href="/" className="flex items-center group">
+                    <Wrench className="h-6 w-6 text-indigo-600 mr-2 group-hover:rotate-12 transition-transform" />
+                    <h1 className="text-2xl font-extrabold tracking-tight text-slate-900">
+                        Mechani<span className="text-indigo-600">X</span>press
+                    </h1>
+                </Link>
                 <p className="text-sm text-muted-foreground mt-1 capitalize">
                     {user.role.toLowerCase()} Dashboard
                 </p>
             </div>
 
-            <nav className="flex-1 p-4 space-y-2">
+            <nav className="flex-1 p-4 space-y-2 mt-2">
                 {user.role === 'CUSTOMER' && (
-                    <Link href="/dashboard/customer" className="flex items-center gap-3 px-4 py-3 rounded-md hover:bg-slate-100 text-slate-700">
+                    <Link href="/dashboard/customer" className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-indigo-50 hover:text-indigo-700 text-slate-600 font-medium transition-colors">
                         <Home className="h-5 w-5" />
-                        Home
+                        Dashboard
                     </Link>
                 )}
                 {user.role === 'MECHANIC' && (
-                    <Link href="/dashboard/mechanic" className="flex items-center gap-3 px-4 py-3 rounded-md hover:bg-slate-100 text-slate-700">
+                    <Link href="/dashboard/mechanic" className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-indigo-50 hover:text-indigo-700 text-slate-600 font-medium transition-colors">
                         <Wrench className="h-5 w-5" />
-                        Jobs
+                        Job Board
                     </Link>
                 )}
                 {user.role === 'ADMIN' && (
-                    <Link href="/dashboard/admin" className="flex items-center gap-3 px-4 py-3 rounded-md hover:bg-slate-100 text-slate-700">
+                    <Link href="/dashboard/admin" className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-indigo-50 hover:text-indigo-700 text-slate-600 font-medium transition-colors">
                         <User className="h-5 w-5" />
-                        Admin
+                        Admin Control
                     </Link>
                 )}
             </nav>
 
-            <div className="p-4 border-t">
-                <div className="flex items-center justify-between px-4 pb-2">
+            <div className="p-4 border-t border-slate-100 bg-slate-50/50">
+                <div className="flex items-center justify-between px-4 pb-3">
+                    <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Account</span>
                     <NotificationsDropdown />
                 </div>
-                <div className="flex items-center gap-3 px-4 py-3 mb-2">
-                    <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold">
-                        {user.name.charAt(0)}
+                <div className="flex items-center gap-3 px-4 py-3 mb-2 bg-white rounded-xl shadow-sm border border-slate-100">
+                    <div className="h-9 w-9 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold ring-2 ring-white shadow-sm">
+                        {user.name.charAt(0).toUpperCase()}
                     </div>
                     <div className="flex-1 overflow-hidden">
-                        <p className="text-sm font-medium truncate">{user.name}</p>
-                        <p className="text-xs text-muted-foreground truncate">{user.role}</p>
+                        <p className="text-sm font-bold text-slate-900 truncate">{user.name}</p>
+                        <p className="text-xs font-medium text-slate-500 truncate capitalize">{user.role.toLowerCase()}</p>
                     </div>
                 </div>
-                <Button variant="ghost" className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50" onClick={logout}>
-                    <LogOut className="mr-2 h-4 w-4" />
-                    Logout
+                <Button variant="ghost" className="w-full justify-start text-rose-600 hover:text-rose-700 hover:bg-rose-50 font-medium rounded-lg transition-colors" onClick={logout}>
+                    <LogOut className="mr-3 h-4 w-4" />
+                    Sign Out
                 </Button>
             </div>
         </div>
@@ -111,6 +115,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                             </Button>
                         </SheetTrigger>
                         <SheetContent side="left" className="p-0 bg-white">
+                            <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
                             <NavContent />
                         </SheetContent>
                     </Sheet>

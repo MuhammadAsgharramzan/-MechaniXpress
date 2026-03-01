@@ -11,6 +11,8 @@ export const metadata: Metadata = {
   description: "On-demand vehicle repair service",
 };
 
+import NextAuthProvider from "@/context/NextAuthProvider";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -19,10 +21,12 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        <AuthProvider>
-          {children}
-          <Toaster />
-        </AuthProvider>
+        <NextAuthProvider>
+          <AuthProvider>
+            {children}
+            <Toaster />
+          </AuthProvider>
+        </NextAuthProvider>
       </body>
     </html>
   );
