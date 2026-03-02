@@ -78,9 +78,14 @@ export default function AuthPage() {
                 login(res.data.token, res.data.user);
             }
         } catch (error: any) {
+            console.error("Auth Error:", error);
+
+            // If there's no response, it's a network/CORS error
+            const errorReason = error.response?.data?.message || error.message || "Failed to connect to backend server";
+
             toast({
                 title: "Error",
-                description: error.response?.data?.message || "Something went wrong",
+                description: errorReason,
                 variant: "destructive"
             });
         } finally {
