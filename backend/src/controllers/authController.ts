@@ -180,8 +180,9 @@ export const forgotPassword = async (req: Request, res: Response) => {
 
         // For local development without an email provider (e.g. Resend/SendGrid):
         // We will just log the token so we can manually hit the frontend route
+        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
         console.log(`\n\n[DEV ONLY] Password Reset Link Requested:`);
-        console.log(`http://localhost:3000/auth/reset-password?token=${resetToken}\n\n`);
+        console.log(`${frontendUrl}/auth/reset-password?token=${resetToken}\n\n`);
 
         res.json({ success: true, message: 'Password reset link sent to your email.' });
     } catch (error: any) {
