@@ -118,7 +118,17 @@ export const googleLogin = async (req: Request, res: Response) => {
 
         let user = await prisma.user.findUnique({ where: { email } });
 
-        if (!user) {
+        if (user) {
+            // If the user already exists, we must ensure they are actually a Google-originated user.
+            // Since we don't have a linked 'provider' table, we will reject Google logins for existing standard accounts
+            // to prevent the "I don't know my password" confusion.
+            if (!user.phone.startsWith('google-')) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'This email is already registered with a standard password. Please use the standard Login form.'
+                });
+            }
+        } else {
             // Register new Google user as a Customer by default
             user = await prisma.user.create({
                 data: {
