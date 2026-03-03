@@ -25,4 +25,4 @@ RUN npx prisma generate
 EXPOSE 5000
 
 # Run migrations then start the compiled server
-CMD ["sh", "-c", "npx prisma migrate deploy && npm start"]
+CMD ["sh", "-c", "npx prisma db push --accept-data-loss && npm start"]
