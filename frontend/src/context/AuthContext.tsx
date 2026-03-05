@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import api from '@/lib/api';
 import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 
 interface User {
     id: string;
@@ -36,6 +37,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const [user, setUser] = useState<User | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const router = useRouter();
+    const { data: session, status } = useSession();
+
+    // Sync NextAuth session to our AuthContext
+    useEffect(() => {
+        if (status === 'authenticated' && session && (session as any).accessToken) {
+            const currentToken = localStorage.getItem('token');
+            const tokenFromSession = (session as any).accessToken;
+            if (currentToken !== tokenFromSession) {
+                login(tokenFromSession, (session as any).backendUser);
+            }
+        }
+    }, [session, status]);
 
     useEffect(() => {
         const initAuth = async () => {
