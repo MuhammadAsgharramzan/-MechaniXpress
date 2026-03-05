@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import api from '@/lib/api';
 import { useRouter } from 'next/navigation';
-import { useSession } from 'next-auth/react';
+import { useSession, signOut } from 'next-auth/react';
 
 interface User {
     id: string;
@@ -41,13 +41,28 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     // Sync NextAuth session to our AuthContext
     useEffect(() => {
-        if (status === 'authenticated' && session && (session as any).accessToken) {
-            const currentToken = localStorage.getItem('token');
-            const tokenFromSession = (session as any).accessToken;
-            if (currentToken !== tokenFromSession) {
-                login(tokenFromSession, (session as any).backendUser);
+        const syncSession = async () => {
+            if (status === 'authenticated' && session && (session as any).accessToken) {
+                const currentToken = localStorage.getItem('token');
+                const tokenFromSession = (session as any).accessToken;
+                if (currentToken !== tokenFromSession) {
+                    try {
+                        // Fetch fresh user data from DB to prevent stale roles from cached NextAuth sessions
+                        api.defaults.headers.common['Authorization'] = `Bearer ${tokenFromSession}`;
+                        const res = await api.get('/auth/me');
+                        if (res.data.success) {
+                            login(tokenFromSession, res.data.user);
+                            return;
+                        }
+                    } catch (e) {
+                        console.error("Failed to sync fresh session data", e);
+                    }
+                    // Fallback to the cached session user
+                    login(tokenFromSession, (session as any).backendUser);
+                }
             }
-        }
+        };
+        syncSession();
     }, [session, status]);
 
     useEffect(() => {
@@ -81,11 +96,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         else router.push('/dashboard/customer');
     };
 
-    const logout = () => {
+    const logout = async () => {
         localStorage.removeItem('token');
         // Clear the cookie too
         document.cookie = 'token=; path=/; max-age=0; SameSite=Strict';
         setUser(null);
+        // Clear NextAuth session cookie without redirecting immediately
+        await signOut({ redirect: false });
         router.push('/auth');
     };
 
