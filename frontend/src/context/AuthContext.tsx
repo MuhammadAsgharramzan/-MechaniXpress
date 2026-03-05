@@ -8,6 +8,12 @@ interface User {
     id: string;
     name: string;
     role: 'CUSTOMER' | 'MECHANIC' | 'ADMIN';
+    mechanicProfile?: {
+        id: string;
+        rating?: number;
+        totalReviews?: number;
+        address?: string;
+    };
 }
 
 interface AuthContextType {

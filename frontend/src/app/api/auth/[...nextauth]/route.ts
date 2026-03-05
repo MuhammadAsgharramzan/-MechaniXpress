@@ -1,5 +1,6 @@
 import NextAuth from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
+import CredentialsProvider from "next-auth/providers/credentials";
 
 const handler = NextAuth({
     providers: [
@@ -7,17 +8,39 @@ const handler = NextAuth({
             clientId: process.env.GOOGLE_CLIENT_ID || "",
             clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
         }),
+        CredentialsProvider({
+            id: "role-selection",
+            name: "Role Selection Completion",
+            credentials: {
+                token: { label: "Token", type: "text" },
+                userStr: { label: "User", type: "text" }
+            },
+            async authorize(credentials) {
+                if (credentials?.token && credentials?.userStr) {
+                    try {
+                        const user = JSON.parse(credentials.userStr);
+                        return {
+                            id: user.id,
+                            name: user.name,
+                            role: user.role,
+                            accessToken: credentials.token,
+                            backendUser: user
+                        } as any;
+                    } catch (e) {
+                        return null;
+                    }
+                }
+                return null;
+            }
+        })
     ],
     callbacks: {
         async signIn({ user, account, profile }) {
             if (account?.provider === "google") {
-                // Send a request to our backend API to log in or register the Google user
                 try {
                     const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/google`, {
                         method: "POST",
-                        headers: {
-                            "Content-Type": "application/json",
-                        },
+                        headers: { "Content-Type": "application/json" },
                         body: JSON.stringify({
                             email: user.email,
                             name: user.name,
@@ -27,12 +50,22 @@ const handler = NextAuth({
 
                     if (res.ok) {
                         const data = await res.json();
-                        if (data.success && data.token) {
-                            // Store the backend token temporarily in the user object
-                            // So that the jwt callback can attach it to the session
-                            (user as any).accessToken = data.token;
-                            (user as any).backendUser = data.user;
-                            return true;
+
+                        if (data.success) {
+                            if (data.requireRoleSelection) {
+                                // Important: We reject the standard sign-in but append the custom URL encoded params 
+                                // to the error so NextAuth redirects back to our frontend error page with this context
+                                const encodedEmail = encodeURIComponent(data.email);
+                                const encodedName = encodeURIComponent(data.name);
+                                const encodedGoogleId = encodeURIComponent(data.googleId);
+                                return `/auth/role-selection?email=${encodedEmail}&name=${encodedName}&googleId=${encodedGoogleId}`;
+                            }
+
+                            if (data.token) {
+                                (user as any).accessToken = data.token;
+                                (user as any).backendUser = data.user;
+                                return true;
+                            }
                         }
                     }
                     return false;
@@ -43,7 +76,7 @@ const handler = NextAuth({
             }
             return true;
         },
-        async jwt({ token, user }) {
+        async jwt({ token, user, account }) {
             if (user) {
                 token.accessToken = (user as any).accessToken;
                 token.backendUser = (user as any).backendUser;
@@ -61,7 +94,7 @@ const handler = NextAuth({
     },
     pages: {
         signIn: '/auth',
-        error: '/auth', // Redirect here if signIn fails
+        error: '/auth', // Redirect here if signIn fails generally
     }
 });
 

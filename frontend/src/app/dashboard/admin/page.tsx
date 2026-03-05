@@ -3,11 +3,21 @@
 import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip } from 'recharts';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/context/AuthContext';
 import api from '@/lib/api';
 
 export default function AdminDashboard() {
     const { data: session } = useSession();
+    const { user, isLoading } = useAuth();
+    const router = useRouter();
     const [stats, setStats] = useState<any>(null);
+
+    useEffect(() => {
+        if (!isLoading && user && user.role !== 'ADMIN') {
+            router.replace(`/dashboard/${user.role.toLowerCase()}`);
+        }
+    }, [user, isLoading, router]);
 
     useEffect(() => {
         const fetchStats = async () => {

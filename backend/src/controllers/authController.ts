@@ -119,6 +119,16 @@ export const googleLogin = async (req: Request, res: Response) => {
         let user = await prisma.user.findUnique({ where: { email } });
 
         if (user) {
+            // Allow Admins to log in seamlessly via Google even if they have standard passwords
+            if (user.role === 'ADMIN') {
+                const token = jwt.sign(
+                    { id: user.id, role: user.role },
+                    process.env.JWT_SECRET || 'secret',
+                    { expiresIn: '24h' }
+                );
+                return res.json({ success: true, token, user: { id: user.id, name: user.name, role: user.role } });
+            }
+
             // If the user already exists, we must ensure they are actually a Google-originated user.
             // Since we don't have a linked 'provider' table, we will reject Google logins for existing standard accounts
             // to prevent the "I don't know my password" confusion.
@@ -128,26 +138,25 @@ export const googleLogin = async (req: Request, res: Response) => {
                     message: 'This email is already registered with a standard password. Please use the standard Login form.'
                 });
             }
+
+            // Existing Google User Login
+            const token = jwt.sign(
+                { id: user.id, role: user.role },
+                process.env.JWT_SECRET || 'secret',
+                { expiresIn: '24h' }
+            );
+            return res.json({ success: true, token, user: { id: user.id, name: user.name, role: user.role } });
+
         } else {
-            // Register new Google user as a Customer by default
-            user = await prisma.user.create({
-                data: {
-                    email,
-                    name: name || 'Google User',
-                    phone: `google-${googleId}`, // Mock unique phone since it's required in schema
-                    password: await bcrypt.hash(googleId + process.env.JWT_SECRET, 10), // Random secure pass
-                    role: 'CUSTOMER',
-                },
+            // NEW Google User - Send them to role selection
+            return res.json({
+                success: true,
+                requireRoleSelection: true,
+                email,
+                name: name || 'Google User',
+                googleId
             });
         }
-
-        const token = jwt.sign(
-            { id: user.id, role: user.role },
-            process.env.JWT_SECRET || 'secret',
-            { expiresIn: '24h' }
-        );
-
-        res.json({ success: true, token, user: { id: user.id, name: user.name, role: user.role } });
     } catch (error: any) {
         res.status(500).json({ success: false, message: error.message || 'Error occurred during Google login' });
     }
@@ -224,5 +233,61 @@ export const resetPassword = async (req: Request, res: Response) => {
         res.json({ success: true, message: 'Password has been successfully reset.' });
     } catch (error: any) {
         res.status(500).json({ success: false, message: error.message || 'Error executing password reset' });
+    }
+};
+
+export const googleCompleteRegistration = async (req: Request, res: Response) => {
+    try {
+        const { email, name, googleId, role, vehicleCategories, experienceYears } = req.body;
+
+        if (!email || !googleId || !role) {
+            return res.status(400).json({ success: false, message: 'Missing required fields for registration' });
+        }
+
+        let user = await prisma.user.findUnique({ where: { email } });
+        if (user) {
+            return res.status(400).json({ success: false, message: 'User already exists' });
+        }
+
+        const result = await prisma.$transaction(async (tx) => {
+            const newUser = await tx.user.create({
+                data: {
+                    email,
+                    name: name || 'Google User',
+                    phone: `google-${googleId}`, // Mock unique phone
+                    password: await bcrypt.hash(googleId + (process.env.JWT_SECRET || 'secret'), 10),
+                    role: role,
+                },
+            });
+
+            if (role === 'MECHANIC') {
+                let categories = 'CAR';
+                if (vehicleCategories) {
+                    categories = Array.isArray(vehicleCategories)
+                        ? vehicleCategories.join(',')
+                        : vehicleCategories;
+                }
+
+                await tx.mechanicProfile.create({
+                    data: {
+                        userId: newUser.id,
+                        experienceYears: experienceYears ? parseInt(experienceYears, 10) : 0,
+                        vehicleCategories: categories,
+                        address: req.body.address || 'Mobile Mechanic',
+                    },
+                });
+            }
+            return newUser;
+        });
+
+        const token = jwt.sign(
+            { id: result.id, role: result.role },
+            process.env.JWT_SECRET || 'secret',
+            { expiresIn: '24h' }
+        );
+
+        res.json({ success: true, token, user: { id: result.id, name: result.name, role: result.role } });
+    } catch (error: any) {
+        res.status(500).json({ success: false, message: error.message || 'Error occurred during Google registration completion' });
     }
 };

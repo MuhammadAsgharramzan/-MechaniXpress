@@ -7,6 +7,7 @@ import { useSession } from 'next-auth/react';
 import api from '@/lib/api';
 // We'll import the Booking Wizard Dialog later
 import NewBookingDialog from './_components/NewBookingDialog';
+import ReviewDialog from './_components/ReviewDialog';
 
 export default function CustomerDashboard() {
     const { data: session } = useSession();
@@ -103,19 +104,30 @@ export default function CustomerDashboard() {
                                             👨‍🔧 <span className="font-bold">{booking.mechanic.user.name}</span>
                                         </div>
                                         <div className="flex items-center gap-2">
-                                            ⭐ <span className="font-medium">{booking.mechanic.rating.toFixed(1)} (124 reviews)</span>
+                                            ⭐ <span className="font-medium">{booking.mechanic.rating ? booking.mechanic.rating.toFixed(1) : 0} ({booking.mechanic.totalReviews || 0} reviews)</span>
                                         </div>
                                         <div className="flex items-center gap-2">
-                                            📍 <span className="font-medium truncate">{booking.mechanic.address || 'Sadar, Karachi'}</span>
+                                            📍 <span className="font-medium truncate">{booking.mechanic.address || 'Mobile Mechanic'}</span>
                                         </div>
                                     </div>
                                 )}
 
-                                {booking.status === 'COMPLETED' && (
+                                {booking.status === 'COMPLETED' && !booking.review && (
                                     <div className="mt-5">
-                                        <button className="button-outline text-sm py-2 px-4 shadow-sm w-auto">
-                                            ✍️ WRITE REVIEW
-                                        </button>
+                                        <ReviewDialog bookingId={booking.id} onReviewSubmitted={fetchBookings} />
+                                    </div>
+                                )}
+                                {booking.status === 'COMPLETED' && booking.review && (
+                                    <div className="mt-5 pt-4 border-t border-slate-100 text-sm">
+                                        <p className="font-bold text-slate-700 mb-1">Your Review:</p>
+                                        <div className="flex items-center gap-1 text-amber-400 mb-1">
+                                            {Array.from({ length: 5 }).map((_, i) => (
+                                                <span key={i} className={i < booking.review.rating ? "text-amber-400" : "text-slate-200"}>★</span>
+                                            ))}
+                                        </div>
+                                        {booking.review.comment && (
+                                            <p className="text-slate-600 italic">"{booking.review.comment}"</p>
+                                        )}
                                     </div>
                                 )}
                             </div>

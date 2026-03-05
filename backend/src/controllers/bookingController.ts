@@ -85,6 +85,7 @@ export const getCustomerBookings = async (req: any, res: Response) => {
             include: {
                 service: true,
                 vehicle: true,
+                review: true,
                 mechanic: {
                     include: {
                         user: { select: { name: true, phone: true } }

@@ -2,20 +2,37 @@
 
 import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/context/AuthContext';
 
 import { useToast } from "@/hooks/use-toast";
 import api from '@/lib/api';
 
 export default function MechanicDashboard() {
     const { data: session } = useSession();
+    const { user, isLoading: authLoading } = useAuth();
+    const router = useRouter();
     const [availableJobs, setAvailableJobs] = useState<any[]>([]);
     const [activeJobs, setActiveJobs] = useState<any[]>([]);
+    const [reviews, setReviews] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const { toast } = useToast();
 
     useEffect(() => {
+        if (!authLoading && user && user.role !== 'MECHANIC') {
+            router.replace(`/dashboard/${user.role.toLowerCase()}`);
+        }
+    }, [user, authLoading, router]);
+
+    useEffect(() => {
         fetchAllJobs();
     }, []);
+
+    useEffect(() => {
+        if (user?.mechanicProfile?.id) {
+            fetchReviews(user.mechanicProfile.id);
+        }
+    }, [user?.mechanicProfile?.id]);
 
     const fetchAllJobs = async () => {
         setLoading(true);
@@ -32,6 +49,17 @@ export default function MechanicDashboard() {
             console.error("Failed to fetch jobs", error);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const fetchReviews = async (mechanicProfileId: string) => {
+        try {
+            const res = await api.get(`/reviews/mechanic/${mechanicProfileId}`);
+            if (res.data.success) {
+                setReviews(res.data.reviews);
+            }
+        } catch (error) {
+            console.error("Failed to fetch reviews", error);
         }
     };
 
@@ -182,17 +210,47 @@ export default function MechanicDashboard() {
                 </div>
             </div>
 
+            {/* RECENT REVIEWS */}
+            <div className="pt-4">
+                <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2 mb-4">
+                    ⭐ RECENT CUSTOMER REVIEWS
+                </h2>
+                <div className="grid gap-4 md:grid-cols-2">
+                    {reviews.length === 0 ? (
+                        <div className="card text-center py-12 text-slate-500 col-span-full">
+                            <p className="font-medium text-slate-800 mb-1">No reviews yet</p>
+                            <p className="max-w-sm mx-auto">Complete jobs to start earning ratings from your customers.</p>
+                        </div>
+                    ) : reviews.map((review) => (
+                        <div key={review.id} className="card bg-white border border-slate-100 shadow-sm p-4 rounded-xl">
+                            <div className="flex justify-between items-start mb-2">
+                                <span className="font-bold text-slate-900">{review.customer?.name}</span>
+                                <span className="text-xs text-slate-500">{new Date(review.createdAt).toLocaleDateString()}</span>
+                            </div>
+                            <div className="flex items-center gap-1 text-amber-400 mb-2">
+                                {Array.from({ length: 5 }).map((_, i) => (
+                                    <span key={i} className={i < review.rating ? "text-amber-400" : "text-slate-200"}>★</span>
+                                ))}
+                            </div>
+                            {review.comment && (
+                                <p className="text-sm text-slate-600 italic">"{review.comment}"</p>
+                            )}
+                        </div>
+                    ))}
+                </div>
+            </div>
+
             {/* PROFILE SECTION */}
-            {session?.user && (
+            {user && (
                 <div className="mt-12 pt-6 border-t border-slate-200">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         <div>
                             <p className="font-bold text-slate-900 flex items-center gap-2 text-lg">
-                                👨‍🔧 {(session?.user as any)?.name}
+                                👨‍🔧 {user.name}
                             </p>
                             <div className="text-sm text-slate-500 mt-1 space-y-1">
-                                <p className="font-medium tracking-wide uppercase">{(session?.user as any)?.role || 'MECHANIC'} • ⭐ 4.8</p>
-                                <p className="flex items-center gap-1">📍 Sadar, Karachi</p>
+                                <p className="font-medium tracking-wide uppercase">{user.role || 'MECHANIC'} • ⭐ {user.mechanicProfile?.rating ? user.mechanicProfile.rating.toFixed(1) : '0'} ({user.mechanicProfile?.totalReviews || 0} reviews)</p>
+                                <p className="flex items-center gap-1">📍 {user.mechanicProfile?.address || 'Mobile Mechanic'}</p>
                             </div>
                         </div>
                         <div className="flex gap-3">
