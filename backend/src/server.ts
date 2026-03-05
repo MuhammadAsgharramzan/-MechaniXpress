@@ -79,9 +79,23 @@ app.use((err: any, req: Request, res: Response, next: NextFunction) => {
     });
 });
 
-app.listen(port as number, '0.0.0.0', () => {
+app.listen(port as number, '0.0.0.0', async () => {
     console.log(`✓ Server running on http://0.0.0.0:${port}`);
-    console.log(`✓ Database connected (SQLite)`);
+    console.log(`✓ Database connected (PostgreSQL)`);
+
+    // Auto-promote admin on startup
+    try {
+        const adminEmail = process.env.ADMIN_EMAIL || 'asgharusa@gmail.com';
+        const adminUser = await prisma.user.findUnique({ where: { email: adminEmail } });
+        if (adminUser && adminUser.role !== 'ADMIN') {
+            await prisma.user.update({ where: { email: adminEmail }, data: { role: 'ADMIN' } });
+            console.log(`✓ Auto-promoted ${adminEmail} to ADMIN`);
+        } else if (adminUser) {
+            console.log(`✓ Admin account verified: ${adminEmail}`);
+        }
+    } catch (e) {
+        // Non-fatal — admin might not have signed up yet
+    }
 });
 
 // Graceful shutdown

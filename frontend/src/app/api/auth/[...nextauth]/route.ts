@@ -7,6 +7,11 @@ const handler = NextAuth({
         GoogleProvider({
             clientId: process.env.GOOGLE_CLIENT_ID || "",
             clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
+            authorization: {
+                params: {
+                    prompt: "select_account", // Always show account picker to prevent stale sessions
+                },
+            },
         }),
         CredentialsProvider({
             id: "role-selection",
@@ -53,8 +58,6 @@ const handler = NextAuth({
 
                         if (data.success) {
                             if (data.requireRoleSelection) {
-                                // Important: We reject the standard sign-in but append the custom URL encoded params 
-                                // to the error so NextAuth redirects back to our frontend error page with this context
                                 const encodedEmail = encodeURIComponent(data.email);
                                 const encodedName = encodeURIComponent(data.name);
                                 const encodedGoogleId = encodeURIComponent(data.googleId);
@@ -76,11 +79,35 @@ const handler = NextAuth({
             }
             return true;
         },
-        async jwt({ token, user, account }) {
+        async jwt({ token, user, account, trigger }) {
+            // On initial sign-in, store the backend data
             if (user) {
                 token.accessToken = (user as any).accessToken;
                 token.backendUser = (user as any).backendUser;
             }
+
+            // On every subsequent request, re-fetch the user from the backend
+            // to ensure role changes (e.g. CUSTOMER -> ADMIN) are picked up immediately
+            if (token.accessToken && !user) {
+                try {
+                    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/me`, {
+                        headers: { Authorization: `Bearer ${token.accessToken}` },
+                    });
+                    if (res.ok) {
+                        const data = await res.json();
+                        if (data.success && data.user) {
+                            token.backendUser = {
+                                id: data.user.id,
+                                name: data.user.name,
+                                role: data.user.role,
+                            };
+                        }
+                    }
+                } catch (e) {
+                    // Silently fail — keep the cached backendUser
+                }
+            }
+
             return token;
         },
         async session({ session, token }) {
@@ -91,10 +118,11 @@ const handler = NextAuth({
     },
     session: {
         strategy: "jwt",
+        maxAge: 24 * 60 * 60, // 24 hours
     },
     pages: {
         signIn: '/auth',
-        error: '/auth', // Redirect here if signIn fails generally
+        error: '/auth',
     }
 });
 
